@@ -1,39 +1,39 @@
 'use client';
 
-/*
- * RecordsContext is the single source of truth for all record data in this
- * interview exercise.  It encapsulates data fetching from the mock API,
- * exposes mutation functions for updating records, and maintains a simple
- * history log of status changes.
+/**
+ * RecordsContext - Global State Management
+ * 
+ * Provides centralized state management for record data, including:
+ * - Fetching and caching records
+ * - Updating record status and notes
+ * - Tracking history of status changes
+ * 
+ * Uses the service layer for API calls to maintain separation of concerns.
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { RecordItem, RecordStatus, RecordHistoryEntry } from '../types';
+import { fetchRecords, updateRecord as updateRecordApi } from '../services/recordsApi';
 
 interface RecordsContextValue {
   records: RecordItem[];
   loading: boolean;
   error: string | null;
   /**
-   * Update a record’s status and/or note. This function calls the mock API
-   * and then updates local state. Errors are set on the context.
+   * Update a record's status and/or note via the API
+   * Updates local state on success and adds history entry for status changes
    */
   updateRecord: (id: string, updates: { status?: RecordStatus; note?: string }) => Promise<void>;
   /**
-   * Refresh the list of records from the API. Useful after a mutation
-   * or when you need the latest state.
+   * Refresh the list of records from the API
    */
   refresh: () => Promise<void>;
-
   /**
-   * A log of record updates performed during this session. Each entry
-   * records the record id, previous and new status, optional note and a
-   * timestamp. This can be used to build an audit log or to teach
-   * candidates about derived state.
+   * History log of all status changes during this session
    */
   history: RecordHistoryEntry[];
   /**
-   * Clears the history log.
+   * Clear the history log (in-memory only)
    */
   clearHistory: () => void;
 }
@@ -41,87 +41,88 @@ interface RecordsContextValue {
 const RecordsContext = createContext<RecordsContextValue | undefined>(undefined);
 
 export function RecordsProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<RecordItem[]>([]);
-  const [busy, setBusy] = useState<boolean>(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [log, setLog] = useState<RecordHistoryEntry[]>([]);
+  const [records, setRecords] = useState<RecordItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<RecordHistoryEntry[]>([]);
 
-  const loadData = useCallback(async () => {
-    setBusy(true);
-    setErr(null);
+  const loadRecords = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch('/api/mock/records');
-      if (!response.ok) {
-        throw new Error(`Failed to load records: ${response.statusText}`);
-      }
-      const incoming = (await response.json()) as RecordItem[];
-      setData(incoming);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      setErr(message);
+      const fetchedRecords = await fetchRecords();
+      setRecords(fetchedRecords);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadRecords();
+  }, [loadRecords]);
 
-  const doUpdate = useCallback(async (id: string, updates: { status?: RecordStatus; note?: string }) => {
-    setErr(null);
+  const updateRecord = useCallback(async (
+    id: string, 
+    updates: { status?: RecordStatus; note?: string }
+  ) => {
+    setError(null);
+    
     try {
-      const response = await fetch('/api/mock/records', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, ...updates }),
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to update record: ${response.statusText}`);
-      }
-      const updated = (await response.json()) as RecordItem;
-      setData((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      // Find the record before updating to compare status
+      const previousRecord = records.find((r) => r.id === id);
+      
+      // Call API to update
+      const updatedRecord = await updateRecordApi(id, updates);
+      
+      // Update local state
+      setRecords((prev) => prev.map((r) => (r.id === updatedRecord.id ? updatedRecord : r)));
 
-      const prevRecord = data.find((r) => r.id === id);
-      if (prevRecord && updates.status && prevRecord.status !== updates.status) {
+      // Add history entry if status changed
+      if (previousRecord && updates.status && previousRecord.status !== updates.status) {
         const entry: RecordHistoryEntry = {
           id,
-          previousStatus: prevRecord.status,
+          previousStatus: previousRecord.status,
           newStatus: updates.status,
           note: updates.note,
           timestamp: new Date().toISOString(),
         };
-        setLog((prevHist) => [...prevHist, entry]);
+        setHistory((prev) => [...prev, entry]);
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      setErr(message);
-      throw error;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      throw err;
     }
-  }, [data]);
+  }, [records]);
 
-  const reLoad = useCallback(async () => {
-    await loadData();
-  }, [loadData]);
+  const refresh = useCallback(async () => {
+    await loadRecords();
+  }, [loadRecords]);
 
-  const purgeLog = useCallback(() => {
-    setLog([]);
+  const clearHistory = useCallback(() => {
+    setHistory([]);
   }, []);
 
   const value = {
-    records: data,
-    loading: busy,
-    error: err,
-    updateRecord: doUpdate,
-    refresh: reLoad,
-    history: log,
-    clearHistory: purgeLog,
+    records,
+    loading,
+    error,
+    updateRecord,
+    refresh,
+    history,
+    clearHistory,
   };
+  
   return <RecordsContext.Provider value={value}>{children}</RecordsContext.Provider>;
 }
 
 export function useRecords() {
-  const ctx = useContext(RecordsContext);
-  if (!ctx) throw new Error('useRecords must be used within a RecordsProvider');
-  return ctx;
+  const context = useContext(RecordsContext);
+  if (!context) {
+    throw new Error('useRecords must be used within a RecordsProvider');
+  }
+  return context;
 }
