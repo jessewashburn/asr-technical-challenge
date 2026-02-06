@@ -23,7 +23,18 @@ import RecordDetailDialog from "./RecordDetailDialog";
 import { Button } from "@/components/ui/button";
 
 export default function RecordList() {
-  const { records, loading, error, refresh } = useRecords();
+  const { 
+    records = [], // Default to empty array if undefined
+    loading, 
+    error, 
+    refresh, 
+    usePagination, 
+    currentPage, 
+    totalPages, 
+    totalCount,
+    goToPage,
+    setPaginationEnabled 
+  } = useRecords();
   const { filter, setFilter, filteredRecords } = useRecordFilter(records);
   const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
 
@@ -36,10 +47,25 @@ export default function RecordList() {
             Records
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-medium text-foreground">{records.length}</span> total • <span className="font-medium text-foreground">{filteredRecords.length}</span> showing
+            {usePagination ? (
+              <>
+                <span className="font-medium text-foreground">{totalCount}</span> total • Page <span className="font-medium text-foreground">{currentPage}</span> of <span className="font-medium text-foreground">{totalPages}</span>
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-foreground">{records.length}</span> total • <span className="font-medium text-foreground">{filteredRecords.length}</span> showing
+              </>
+            )}
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setPaginationEnabled(!usePagination)}
+          >
+            {usePagination ? "Disable" : "Enable"} Pagination
+          </Button>
           <RecordFilter value={filter} onChange={setFilter} />
           <Button variant="ghost" onClick={() => refresh()} disabled={loading}>
             Reload
@@ -73,15 +99,42 @@ export default function RecordList() {
 
       {/* Records grid */}
       {!loading && filteredRecords.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredRecords.map((record) => (
-            <RecordCard 
-              key={record.id} 
-              record={record} 
-              onSelect={setSelectedRecord} 
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredRecords.map((record) => (
+              <RecordCard 
+                key={record.id} 
+                record={record} 
+                onSelect={setSelectedRecord} 
+              />
+            ))}
+          </div>
+
+          {/* Pagination controls */}
+          {usePagination && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 pt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1 || loading}
+              >
+                ← Previous
+              </Button>
+              <span className="text-sm font-medium">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages || loading}
+              >
+                Next →
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Empty state */}

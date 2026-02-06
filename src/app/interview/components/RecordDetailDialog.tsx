@@ -38,7 +38,7 @@ export default function RecordDetailDialog({
   record,
   onClose,
 }: RecordDetailDialogProps) {
-  const { updateRecord } = useRecords();
+  const { updateRecord, refresh } = useRecords();
   
   const [status, setStatus] = useState<RecordStatus>(record.status);
   const [note, setNote] = useState<string>(record.note ?? "");
@@ -46,6 +46,7 @@ export default function RecordDetailDialog({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [versionConflict, setVersionConflict] = useState(false);
 
   const statusOptions: RecordStatus[] = [
     "pending",
@@ -61,6 +62,7 @@ export default function RecordDetailDialog({
     setValidationError(null);
     setSaveError(null);
     setSaveSuccess(false);
+    setVersionConflict(false);
 
     // Validate note requirement
     if (requiresNote && !note.trim()) {
@@ -70,17 +72,32 @@ export default function RecordDetailDialog({
 
     setSaving(true);
     try {
-      await updateRecord(record.id, { status, note: note.trim() || undefined });
+      await updateRecord(record.id, { 
+        status, 
+        note: note.trim() || undefined,
+        version: record.version // Send current version for concurrency check
+      });
       setSaveSuccess(true);
       // Show success briefly before closing
       setTimeout(() => {
         onClose();
       }, 800);
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Failed to save changes");
+    } catch (error: any) {
+      // Handle version conflict (409)
+      if (error?.statusCode === 409) {
+        setVersionConflict(true);
+        setSaveError("This record was modified by another user. Please refresh to see the latest version.");
+      } else {
+        setSaveError(error instanceof Error ? error.message : "Failed to save changes");
+      }
     } finally {
       setSaving(false);
     }
+  };
+  
+  const handleRefreshAndRetry = async () => {
+    await refresh();
+    onClose();
   };
 
   return (
@@ -153,28 +170,52 @@ export default function RecordDetailDialog({
             </div>
           )}
 
-          {/* Save error */}
-
           {/* Success message */}
           {saveSuccess && (
             <div className="rounded-md bg-green-50 border border-green-200 p-3">
               <p className="text-sm text-green-800 font-medium">✓ Changes saved successfully</p>
             </div>
           )}
+
+          {/* Save error */}
           {saveError && (
             <div className="rounded-md bg-destructive/10 border border-destructive/50 p-3">
-              <p className="text-sm text-destructive">Error: {saveError}</p>
+              <p className="text-sm text-destructive font-medium">Error: {saveError}</p>
+            </div>
+          )}
+
+          {/* Version conflict resolution */}
+          {versionConflict && (
+            <div className="rounded-md bg-amber-50 border border-amber-300 p-3 space-y-2">
+              <p className="text-sm text-amber-900 font-medium">⚠️ Conflict Detected</p>
+              <p className="text-xs text-amber-800">
+                This record was modified by another user while you were editing. 
+                Your changes have not been saved.
+              </p>
             </div>
           )}
         </div>
 
         <DialogFooter className="mt-6">
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button variant="default" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
+          {versionConflict ? (
+            <>
+              <Button variant="secondary" onClick={onClose}>
+                Close
+              </Button>
+              <Button variant="default" onClick={handleRefreshAndRetry}>
+                Refresh & Try Again
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={onClose} disabled={saving}>
+                Cancel
+              </Button>
+              <Button variant="default" onClick={handleSave} disabled={saving}>
+                {saving ? "Saving..." : "Save"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

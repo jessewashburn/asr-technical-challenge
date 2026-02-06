@@ -8,7 +8,9 @@ import { useRecords } from "../context/RecordsContext";
 export default function RecordSummary() {
   const { records } = useRecords();
   // Compute counts for each status
-  const counts = records.reduce(
+  // Ensure records is always an array
+  const recordsArray = Array.isArray(records) ? records : [];
+  const counts = recordsArray.reduce(
     (acc, record) => {
       acc[record.status] = (acc[record.status] ?? 0) + 1;
       return acc;
