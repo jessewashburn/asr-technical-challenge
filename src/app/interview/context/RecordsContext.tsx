@@ -72,7 +72,7 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   const [totalCount, setTotalCount] = useState<number>(0);
   const [pageSize] = useState<number>(5); // Fixed page size
   
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const loadRecords = useCallback(async (page: number = 1) => {
     setLoading(true);

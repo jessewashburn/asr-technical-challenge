@@ -12,6 +12,7 @@ const mockRecord: RecordItem = {
   name: 'Test Specimen',
   description: 'Test description',
   status: 'pending',
+  version: 1,
 };
 
 function TestWrapper({ record, onClose }: { record: RecordItem, onClose: () => void }) {
@@ -27,26 +28,37 @@ function TestWrapper({ record, onClose }: { record: RecordItem, onClose: () => v
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(recordsApi.updateRecord).mockResolvedValue({ ...mockRecord, status: 'approved' });
+  // Mock fetchRecords to prevent act() warnings from RecordsProvider useEffect
+  vi.mocked(recordsApi.fetchRecords).mockResolvedValue([mockRecord]);
+  vi.mocked(recordsApi.updateRecord).mockResolvedValue({ ...mockRecord, status: 'approved', version: 2 });
 });
 
 describe('RecordDetailDialog', () => {
-  it('should render the dialog when open', () => {
+  it('should render the dialog when open', async () => {
     render(<TestWrapper record={mockRecord} onClose={() => {}} />);
     
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+    
     expect(screen.getByText(mockRecord.name)).toBeInTheDocument();
     expect(screen.getByText(mockRecord.description)).toBeInTheDocument();
   });
 
-  it('should display current status', () => {
+  it('should display current status', async () => {
     render(<TestWrapper record={mockRecord} onClose={() => {}} />);
     
-    expect(screen.getByText('pending')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('pending')).toBeInTheDocument();
+    });
   });
 
-  it('should display character count for note', () => {
+  it('should display character count for note', async () => {
     render(<TestWrapper record={mockRecord} onClose={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
 
     const noteTextarea = screen.getByPlaceholderText(/add a note/i);
     fireEvent.change(noteTextarea, { target: { value: 'Test note' } });
@@ -54,16 +66,23 @@ describe('RecordDetailDialog', () => {
     expect(screen.getByText(/9 characters/i)).toBeInTheDocument();
   });
 
-  it('should display save and cancel buttons', () => {
+  it('should display save and cancel buttons', async () => {
     render(<TestWrapper record={mockRecord} onClose={() => {}} />);
 
-    expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+    });
+    
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
   });
 
-  it('should call onClose when cancel is clicked', () => {
+  it('should call onClose when cancel is clicked', async () => {
     const onClose = vi.fn();
     render(<TestWrapper record={mockRecord} onClose={onClose} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
 
     const cancelButton = screen.getByRole('button', { name: /cancel/i });
     fireEvent.click(cancelButton);
@@ -71,17 +90,22 @@ describe('RecordDetailDialog', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('should show note textarea', () => {
+  it('should show note textarea', async () => {
     render(<TestWrapper record={mockRecord} onClose={() => {}} />);
 
-    const noteTextarea = screen.getByPlaceholderText(/add a note/i);
-    expect(noteTextarea).toBeInTheDocument();
+    await waitFor(() => {
+      const noteTextarea = screen.getByPlaceholderText(/add a note/i);
+      expect(noteTextarea).toBeInTheDocument();
+    });
   });
 
-  it('should show status select and labels', () => {
+  it('should show status select and labels', async () => {
     render(<TestWrapper record={mockRecord} onClose={() => {}} />);
 
-    expect(screen.getByText('Status')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Status')).toBeInTheDocument();
+    });
+    
     expect(screen.getByText('Reviewer note')).toBeInTheDocument();
   });
 });

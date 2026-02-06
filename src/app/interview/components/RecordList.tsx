@@ -30,13 +30,16 @@ export default function RecordList() {
     refresh, 
     usePagination, 
     currentPage, 
-    totalPages, 
+    totalPages: rawTotalPages, 
     totalCount,
     goToPage,
     setPaginationEnabled 
   } = useRecords();
   const { filter, setFilter, filteredRecords } = useRecordFilter(records);
   const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
+
+  // Ensure totalPages is never NaN or 0
+  const totalPages = Math.max(1, rawTotalPages || 1);
 
   return (
     <div className="space-y-6 sm:space-y-8">
