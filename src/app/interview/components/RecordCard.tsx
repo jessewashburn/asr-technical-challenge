@@ -34,33 +34,46 @@ const statusToVariant: Record<
   needs_revision: "destructive",
 };
 
+// Enhanced status badge colors
+const statusBadgeClasses: Record<RecordItem["status"], string> = {
+  pending: "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200",
+  approved: "bg-green-100 text-green-700 border-green-200 hover:bg-green-200",
+  flagged: "bg-red-100 text-red-700 border-red-200 hover:bg-red-200",
+  needs_revision: "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200",
+};
+
 export default function RecordCard({ record, onSelect }: RecordCardProps) {
   return (
-    <Card className="overflow-hidden hover:shadow-sm transition-shadow">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b">
-        <div>
-          <CardTitle className="text-base sm:text-lg tracking-tight">
+    <Card className="overflow-hidden hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 border-2">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between border-b pb-3">
+        <div className="flex-1">
+          <CardTitle className="text-base sm:text-lg tracking-tight font-semibold">
             {record.name}
           </CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
+          <CardDescription className="text-xs sm:text-sm mt-1 line-clamp-2">
             {record.description}
           </CardDescription>
         </div>
-        <CardAction>
-          <Badge variant={statusToVariant[record.status]}>
-            {record.status}
+        <CardAction className="mt-2 sm:mt-0 sm:ml-3">
+          <Badge className={`capitalize border ${statusBadgeClasses[record.status]}`}>
+            {record.status.replace("_", " ")}
           </Badge>
         </CardAction>
       </CardHeader>
       {record.note && (
-        <CardContent>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Note: {record.note}
+        <CardContent className="pt-3">
+          <p className="text-xs sm:text-sm text-muted-foreground italic">
+            "{record.note}"
           </p>
         </CardContent>
       )}
-      <CardFooter className="border-t pt-4 flex justify-end">
-        <Button variant="secondary" onClick={() => onSelect(record)}>
+      <CardFooter className="border-t bg-muted/30 pt-3 flex justify-end">
+        <Button 
+          variant="default" 
+          size="sm"
+          onClick={() => onSelect(record)}
+          className="font-medium"
+        >
           Review
         </Button>
       </CardFooter>
