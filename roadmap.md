@@ -149,61 +149,98 @@ Understand existing codebase, identify issues, and refactor for clarity and main
 
 ---
 
-## 6. Phase 2: Core Feature - Review Actions with Validation
+## 6. Phase 2: Core Feature - Review Actions with Validation ✅ COMPLETE
 
 ### Goals
 Implement status update workflow with validation through the detail dialog.
 
 ### Tasks
-- [ ] Wire status dropdown in RecordDetailDialog to local state
-- [ ] Add note textarea with character count
-- [ ] Implement validation logic:
+- [x] Wire status dropdown in RecordDetailDialog to local state
+- [x] Add note textarea with character count
+- [x] Implement validation logic:
   - Flagged/Needs Revision: non-empty note required
   - Approved: note optional
-- [ ] Show inline validation errors when note is missing
-- [ ] Implement save handler:
+- [x] Show inline validation errors when note is missing
+- [x] Implement save handler:
   - Validate inputs
   - Call API service to PATCH record
   - Handle success: update context, close dialog, show success message
   - Handle errors: show error message, keep dialog open
-- [ ] Ensure optimistic or pessimistic update strategy is clear
+- [x] Ensure optimistic or pessimistic update strategy is clear
 
 ### Acceptance Criteria
-- [ ] Status dropdown correctly updates state
-- [ ] Note validation prevents save for invalid inputs
-- [ ] Validation error messages are clear and inline
-- [ ] Successful save updates record in context
-- [ ] List reflects updated status immediately
-- [ ] Dialog closes only on successful save
-- [ ] Success/error feedback shown to user (toast or inline)
+- [x] Status dropdown correctly updates state
+- [x] Note validation prevents save for invalid inputs
+- [x] Validation error messages are clear and inline
+- [x] Successful save updates record in context
+- [x] List reflects updated status immediately
+- [x] Dialog closes only on successful save (with 800ms success message)
+- [x] Success/error feedback shown to user (inline)
 
 ### Verification Steps
-- Manually test each status change scenario
-- Test validation (try saving Flagged without note)
-- Check that list updates after save
-- Verify API PATCH request in Network tab
+✅ Manually tested each status change scenario:
+- ✅ Approved: note optional, saves successfully
+- ✅ Flagged: note required, validation blocks save when empty
+- ✅ Needs Revision: note required, validation blocks save when empty
+- ✅ Pending: note optional, saves successfully
+
+✅ Verified list updates after save
+✅ Verified summary counts update reactively
+✅ Verified history log records changes with timestamp
+✅ Verified inline success message shows before close
+✅ Verified inline error messages display correctly
+✅ API PATCH request verified in Network tab
+
+### Implementation Details
+
+**Validation Logic:**
+```typescript
+const requiresNote = status === "flagged" || status === "needs_revision";
+
+if (requiresNote && !note.trim()) {
+  setValidationError("A note is required for flagged or needs revision status.");
+  return;
+}
+```
+
+**Save Flow:**
+1. Validate inputs
+2. Call `updateRecord()` from context
+3. Context calls API service
+4. On success: update local state, add history entry
+5. Show success message inline
+6. Close dialog after 800ms delay
+
+**Error Handling:**
+- Validation errors: shown inline, prevent save
+- API errors: shown inline, keep dialog open, allow retry
 
 ### Completion Gate
-Status updates work end-to-end with proper validation and error handling.
+**Phase 2 is complete! ✅**
+- Status updates work end-to-end with proper validation
+- Validation prevents invalid saves
+- User receives clear feedback (success and errors)
+- List, summary, and history all update correctly
+- Dialog behavior is intuitive and responsive
 
 ---
 
-## 7. Phase 3: Supporting Features (Filter, Summary, History)
+## 7. Phase 3: Supporting Features (Filter, Summary, History) ✅ COMPLETE
 
 ### Goals
 Implement filter functionality, summary counts, and history log.
 
 ### Tasks
-- [ ] **Filter:**
+- [x] **Filter:**
   - Wire status filter dropdown to context/hook
   - Implement filtering logic for records
   - Handle "All" option
   - Ensure filter persists during updates
-- [ ] **Summary:**
+- [x] **Summary:**
   - Create RecordSummary component showing counts per status
   - Calculate counts from current records state
   - Update reactively when records change
-- [ ] **History Log:**
+- [x] **History Log:**
   - Extend context to track status change history
   - On status update, append history entry: timestamp, from→to, note
   - Display history in HistoryLog component
@@ -211,22 +248,24 @@ Implement filter functionality, summary counts, and history log.
   - Add clear history option (in-memory only)
 
 ### Acceptance Criteria
-- [ ] Filter correctly shows/hides records by status
-- [ ] Filter defaults to "All" with clear indication
-- [ ] Summary displays accurate counts for all statuses
-- [ ] Summary updates when records change
-- [ ] History appends entry on each status change
-- [ ] History shows timestamp, status transition, and note
-- [ ] History is ordered (most recent first) and scrollable
+- [x] Filter correctly shows/hides records by status
+- [x] Filter defaults to "All" with clear indication
+- [x] Summary displays accurate counts for all statuses
+- [x] Summary updates when records change
+- [x] History appends entry on each status change
+- [x] History shows timestamp, status transition, and note
+- [x] History is ordered (most recent first) and scrollable
 
 ### Verification Steps
-- Test filter with each status option
-- Verify counts match visible records
-- Change record status and confirm history entry appears
-- Check history formatting and ordering
+✅ Tested filter with each status option
+✅ Verified counts match visible records
+✅ Changed record status and confirmed history entry appears
+✅ Verified history formatting and ordering
+✅ Tested filter persistence during updates
 
 ### Completion Gate
-All three supporting features (filter, summary, history) work correctly and stay in sync.
+**Phase 3 is complete! ✅**
+All three supporting features work correctly and stay in sync.
 
 ---
 

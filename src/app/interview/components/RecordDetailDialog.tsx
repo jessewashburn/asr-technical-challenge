@@ -45,6 +45,7 @@ export default function RecordDetailDialog({
   const [saving, setSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const statusOptions: RecordStatus[] = [
     "pending",
@@ -59,6 +60,7 @@ export default function RecordDetailDialog({
     // Clear previous errors
     setValidationError(null);
     setSaveError(null);
+    setSaveSuccess(false);
 
     // Validate note requirement
     if (requiresNote && !note.trim()) {
@@ -69,7 +71,11 @@ export default function RecordDetailDialog({
     setSaving(true);
     try {
       await updateRecord(record.id, { status, note: note.trim() || undefined });
-      onClose(); // Close dialog on successful save
+      setSaveSuccess(true);
+      // Show success briefly before closing
+      setTimeout(() => {
+        onClose();
+      }, 800);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Failed to save changes");
     } finally {
@@ -148,6 +154,13 @@ export default function RecordDetailDialog({
           )}
 
           {/* Save error */}
+
+          {/* Success message */}
+          {saveSuccess && (
+            <div className="rounded-md bg-green-50 border border-green-200 p-3">
+              <p className="text-sm text-green-800 font-medium">✓ Changes saved successfully</p>
+            </div>
+          )}
           {saveError && (
             <div className="rounded-md bg-destructive/10 border border-destructive/50 p-3">
               <p className="text-sm text-destructive">Error: {saveError}</p>
