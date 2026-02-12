@@ -122,11 +122,12 @@ let records: RecordItem[] = [
  * - PATCH with version-based optimistic concurrency (409 on conflict)
  */
 
-// GET /api/mock/records?page=1&limit=10
+// GET /api/mock/records?page=1&limit=10&status=pending
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const pageParam = searchParams.get('page');
   const limitParam = searchParams.get('limit');
+  const statusFilter = searchParams.get('status');
 
   // If no pagination params, return all records (backward compatibility)
   if (!pageParam && !limitParam) {
@@ -144,12 +145,17 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const totalCount = records.length;
+  // Filter records if status parameter is provided
+  const filteredRecords = statusFilter && statusFilter !== 'all'
+    ? records.filter(r => r.status === statusFilter)
+    : records;
+
+  const totalCount = filteredRecords.length;
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
-  const paginatedRecords = records.slice(startIndex, endIndex);
+  const paginatedRecords = filteredRecords.slice(startIndex, endIndex);
 
-  // Calculate status counts from ALL records, not just current page
+  // Calculate status counts from ALL records (not filtered), for the summary
   const statusCounts = {
     pending: records.filter(r => r.status === 'pending').length,
     approved: records.filter(r => r.status === 'approved').length,

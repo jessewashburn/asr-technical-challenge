@@ -62,14 +62,24 @@ export async function fetchRecords(): Promise<RecordItem[]> {
 }
 
 /**
- * Fetches paginated records from the API
+ * Fetches paginated records from the API with optional status filter
  */
 export async function fetchPaginatedRecords(
   page: number = 1, 
-  limit: number = 10
+  limit: number = 10,
+  status?: string
 ): Promise<PaginatedResponse> {
   try {
-    const url = `${API_BASE}?page=${page}&limit=${limit}`;
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    
+    if (status && status !== 'all') {
+      params.append('status', status);
+    }
+    
+    const url = `${API_BASE}?${params.toString()}`;
     const response = await fetch(url);
     
     if (!response.ok) {

@@ -5,7 +5,7 @@
  * keeping components focused on presentation.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { RecordItem, RecordStatus } from '../types';
 
 /**
@@ -15,11 +15,9 @@ export type RecordFilter = 'all' | RecordStatus;
 
 /**
  * Hook for filtering records by status
- * Returns the filtered records and filter controls
+ * Returns the filtered records
  */
-export function useRecordFilter(records: RecordItem[]) {
-  const [filter, setFilter] = useState<RecordFilter>('all');
-
+export function useRecordFilter(records: RecordItem[], filter: RecordFilter) {
   const filteredRecords = useMemo(() => {
     if (filter === 'all') {
       return records;
@@ -28,8 +26,6 @@ export function useRecordFilter(records: RecordItem[]) {
   }, [records, filter]);
 
   return {
-    filter,
-    setFilter,
     filteredRecords,
   };
 }

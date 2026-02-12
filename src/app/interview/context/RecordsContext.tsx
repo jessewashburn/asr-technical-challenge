@@ -14,16 +14,21 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { RecordItem, RecordStatus, RecordHistoryEntry } from '../types';
 import { 
+  fetchRecords,
   fetchPaginatedRecords, 
   updateRecord as updateRecordApi,
   type PaginatedResponse,
   type StatusCounts 
 } from '../services/recordsApi';
+import type { RecordFilter } from '../hooks/useRecordFilter';
 
 interface RecordsContextValue {
   records: RecordItem[];
   loading: boolean;
   error: string | null;
+  // Filter state
+  filter: RecordFilter;
+  setFilter: (filter: RecordFilter) => void;
   // Pagination state
   currentPage: number;
   totalCount: number;
@@ -66,8 +71,9 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<RecordHistoryEntry[]>([]);
+  const [filter, setFilter] = useState<RecordFilter>('all');
   
-  // Pagination state (always enabled)
+  // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(5);
@@ -84,7 +90,8 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const response: PaginatedResponse = await fetchPaginatedRecords(page, pageSize);
+      // Always use server-side pagination with optional filter
+      const response: PaginatedResponse = await fetchPaginatedRecords(page, pageSize, filter);
       setRecords(response.records);
       setTotalCount(response.totalCount);
       setCurrentPage(response.page);
@@ -95,11 +102,11 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [pageSize]);
+  }, [pageSize, filter]);
 
   useEffect(() => {
     loadRecords(currentPage);
-  }, [loadRecords, currentPage]);
+  }, [loadRecords, currentPage, filter]);
 
   const updateRecord = useCallback(async (
     id: string, 
@@ -149,6 +156,11 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     setPageSize(size);
     setCurrentPage(1); // Reset to page 1 when changing page size
   }, []);
+  
+  const handleSetFilter = useCallback((newFilter: RecordFilter) => {
+    setFilter(newFilter);
+    setCurrentPage(1); // Reset to page 1 when changing filter
+  }, []);
 
   const clearHistory = useCallback(() => {
     setHistory([]);
@@ -158,6 +170,8 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     records,
     loading,
     error,
+    filter,
+    setFilter: handleSetFilter,
     currentPage,
     totalCount,
     pageSize,
