@@ -64,7 +64,7 @@ export default function HistoryLog() {
               </div>
               {entry.note && (
                 <p className="text-xs text-muted-foreground mt-2 italic pl-3 border-l-2 border-muted">
-                  "{entry.note}"
+                  &ldquo;{entry.note}&rdquo;
                 </p>
               )}
             </li>
