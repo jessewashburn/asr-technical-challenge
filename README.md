@@ -19,6 +19,22 @@ This repository contains a simplified but intentionally imperfect review & annot
 
 4. Navigate to `http://localhost:3000` to access the app. The interview task lives under the `/interview` route.
 
+## Solution Overview
+
+**Status**: All requirements completed, including both optional features (pagination + concurrency)
+
+**Start here for review**: 
+- [IMPLEMENTATION.md](./IMPLEMENTATION.md) - High-level summary of methodology, architecture, and deliverables
+- [ROADMAP.md](./ROADMAP.md) - Detailed phase-by-phase execution and verification (if you want the full detail)
+
+**Quick verification**:
+```bash
+npm test  # 32/32 tests passing
+npm run dev  # Navigate to /interview
+```
+
+---
+
 ## Context
 
 VectorCam is used by entomologists and public health program managers to review and annotate specimen data collected in the field. This exercise focuses on the **web dashboard** portion of the system (not the mobile capture pipeline). A **mock API** (`/api/mock/records`) serves an in‑memory list of records and supports `GET` and `PATCH` operations. Data resets whenever the server restarts.

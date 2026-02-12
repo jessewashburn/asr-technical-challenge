@@ -1,5 +1,9 @@
 # VectorCam Interview Exercise - Execution Roadmap
 
+> **Document Purpose**: This was my working document during development. It contains detailed phase-by-phase execution, acceptance criteria, and verification steps. For a high-level summary, see [IMPLEMENTATION.md](./IMPLEMENTATION.md).
+
+---
+
 ## Development Methodology
 
 **This project demonstrates Specification-Driven Development (SDD) using AI as a development accelerator.**
