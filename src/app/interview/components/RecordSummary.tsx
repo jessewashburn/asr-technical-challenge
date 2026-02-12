@@ -2,21 +2,12 @@ import type { RecordStatus } from "../types";
 import { useRecords } from "../context/RecordsContext";
 
 /**
- * RecordSummary computes derived counts by status from the current record set
- * provided by RecordsContext and renders them as a lightweight dashboard.
+ * RecordSummary displays status counts for all records (not just current page)
+ * using data provided by RecordsContext from the paginated API response.
  */
 export default function RecordSummary() {
-  const { records } = useRecords();
-  // Compute counts for each status
-  // Ensure records is always an array
-  const recordsArray = Array.isArray(records) ? records : [];
-  const counts = recordsArray.reduce(
-    (acc, record) => {
-      acc[record.status] = (acc[record.status] ?? 0) + 1;
-      return acc;
-    },
-    {} as Record<RecordStatus, number>,
-  );
+  const { statusCounts } = useRecords();
+  
   const statuses: RecordStatus[] = [
     "pending",
     "approved",
@@ -51,7 +42,7 @@ export default function RecordSummary() {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {statuses.map((status) => {
-          const count = counts[status] ?? 0;
+          const count = statusCounts[status] ?? 0;
           return (
             <div
               key={status}

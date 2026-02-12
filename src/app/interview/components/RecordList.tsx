@@ -21,6 +21,13 @@ import RecordSummary from "./RecordSummary";
 import HistoryLog from "./HistoryLog";
 import RecordDetailDialog from "./RecordDetailDialog";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function RecordList() {
   const { 
@@ -28,12 +35,12 @@ export default function RecordList() {
     loading, 
     error, 
     refresh, 
-    usePagination, 
     currentPage, 
     totalPages: rawTotalPages, 
     totalCount,
-    goToPage,
-    setPaginationEnabled 
+    pageSize,
+    setPageSize,
+    goToPage
   } = useRecords();
   const { filter, setFilter, filteredRecords } = useRecordFilter(records);
   const [selectedRecord, setSelectedRecord] = useState<RecordItem | null>(null);
@@ -50,25 +57,10 @@ export default function RecordList() {
             Records
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {usePagination ? (
-              <>
-                <span className="font-medium text-foreground">{totalCount}</span> total • Page <span className="font-medium text-foreground">{currentPage}</span> of <span className="font-medium text-foreground">{totalPages}</span>
-              </>
-            ) : (
-              <>
-                <span className="font-medium text-foreground">{records.length}</span> total • <span className="font-medium text-foreground">{filteredRecords.length}</span> showing
-              </>
-            )}
+            <span className="font-medium text-foreground">{totalCount}</span> total • Page <span className="font-medium text-foreground">{currentPage}</span> of <span className="font-medium text-foreground">{totalPages}</span>
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setPaginationEnabled(!usePagination)}
-          >
-            {usePagination ? "Disable" : "Enable"} Pagination
-          </Button>
           <RecordFilter value={filter} onChange={setFilter} />
           <Button variant="ghost" onClick={() => refresh()} disabled={loading}>
             Reload
@@ -114,29 +106,53 @@ export default function RecordList() {
           </div>
 
           {/* Pagination controls */}
-          {usePagination && totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1 || loading}
-              >
-                ← Previous
-              </Button>
-              <span className="text-sm font-medium">
-                Page {currentPage} of {totalPages}
+          <div className="flex flex-col items-center justify-center gap-3 pt-4">
+            {totalPages > 1 && (
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}
+                >
+                  ← Previous
+                </Button>
+                <span className="text-sm font-medium">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages || loading}
+                >
+                  Next →
+                </Button>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                Show
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages || loading}
+              <Select
+                value={String(pageSize)}
+                onValueChange={(value) => setPageSize(Number(value))}
               >
-                Next →
-              </Button>
+                <SelectTrigger size="sm" className="w-[70px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">
+                per page
+              </span>
             </div>
-          )}
+          </div>
         </>
       )}
 

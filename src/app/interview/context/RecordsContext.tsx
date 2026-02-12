@@ -14,10 +14,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { RecordItem, RecordStatus, RecordHistoryEntry } from '../types';
 import { 
-  fetchRecords, 
   fetchPaginatedRecords, 
   updateRecord as updateRecordApi,
-  type PaginatedResponse 
+  type PaginatedResponse,
+  type StatusCounts 
 } from '../services/recordsApi';
 
 interface RecordsContextValue {
@@ -29,7 +29,12 @@ interface RecordsContextValue {
   totalCount: number;
   pageSize: number;
   totalPages: number;
-  usePagination: boolean;
+  // Status counts for all records (not just current page)
+  statusCounts: StatusCounts;
+  /**
+   * Change the number of items per page
+   */
+  setPageSize: (size: number) => void;
   /**
    * Update a record's status and/or note via the API with version-based concurrency
    * Updates local state on success and adds history entry for status changes
@@ -41,13 +46,9 @@ interface RecordsContextValue {
    */
   refresh: () => Promise<void>;
   /**
-   * Navigate to a specific page (only when pagination is enabled)
+   * Navigate to a specific page
    */
   goToPage: (page: number) => Promise<void>;
-  /**
-   * Toggle pagination mode
-   */
-  setPaginationEnabled: (enabled: boolean) => void;
   /**
    * History log of all status changes during this session
    */
@@ -66,11 +67,16 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<RecordHistoryEntry[]>([]);
   
-  // Pagination state
-  const [usePagination, setUsePagination] = useState<boolean>(false);
+  // Pagination state (always enabled)
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [pageSize] = useState<number>(5); // Fixed page size
+  const [pageSize, setPageSize] = useState<number>(5);
+  const [statusCounts, setStatusCounts] = useState<StatusCounts>({
+    pending: 0,
+    approved: 0,
+    flagged: 0,
+    needs_revision: 0,
+  });
   
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -78,27 +84,22 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      if (usePagination) {
-        const response: PaginatedResponse = await fetchPaginatedRecords(page, pageSize);
-        setRecords(response.records);
-        setTotalCount(response.totalCount);
-        setCurrentPage(response.page);
-      } else {
-        const fetchedRecords = await fetchRecords();
-        setRecords(fetchedRecords);
-        setTotalCount(fetchedRecords.length);
-      }
+      const response: PaginatedResponse = await fetchPaginatedRecords(page, pageSize);
+      setRecords(response.records);
+      setTotalCount(response.totalCount);
+      setCurrentPage(response.page);
+      setStatusCounts(response.statusCounts);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [usePagination, pageSize]);
+  }, [pageSize]);
 
   useEffect(() => {
     loadRecords(currentPage);
-  }, [loadRecords, currentPage, usePagination]);
+  }, [loadRecords, currentPage]);
 
   const updateRecord = useCallback(async (
     id: string, 
@@ -144,9 +145,9 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [totalPages]);
   
-  const setPaginationEnabled = useCallback((enabled: boolean) => {
-    setUsePagination(enabled);
-    setCurrentPage(1); // Reset to page 1 when toggling
+  const handleSetPageSize = useCallback((size: number) => {
+    setPageSize(size);
+    setCurrentPage(1); // Reset to page 1 when changing page size
   }, []);
 
   const clearHistory = useCallback(() => {
@@ -161,11 +162,11 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
     totalCount,
     pageSize,
     totalPages,
-    usePagination,
+    statusCounts,
     updateRecord,
     refresh,
     goToPage,
-    setPaginationEnabled,
+    setPageSize: handleSetPageSize,
     history,
     clearHistory,
   };

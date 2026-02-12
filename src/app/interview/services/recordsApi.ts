@@ -23,11 +23,19 @@ export class RecordsApiError extends Error {
   }
 }
 
+export interface StatusCounts {
+  pending: number;
+  approved: number;
+  flagged: number;
+  needs_revision: number;
+}
+
 export interface PaginatedResponse {
   records: RecordItem[];
   totalCount: number;
   page: number;
   limit: number;
+  statusCounts: StatusCounts;
 }
 
 /**

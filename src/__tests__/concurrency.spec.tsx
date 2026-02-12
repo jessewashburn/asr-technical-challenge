@@ -24,15 +24,26 @@ const mockRecord = {
   version: 1,
 };
 
-const mockRecords = [mockRecord];
+const mockPaginatedResponse = {
+  records: [mockRecord],
+  totalCount: 1,
+  page: 1,
+  limit: 5,
+  statusCounts: {
+    pending: 1,
+    approved: 0,
+    flagged: 0,
+    needs_revision: 0,
+  },
+};
 
 describe('Optimistic Concurrency Control', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: async () => mockRecords,
-    });
+      json: async () => mockPaginatedResponse,
+    } as Response);
   });
 
   it('should send version with update request', async () => {
@@ -45,10 +56,10 @@ describe('Optimistic Concurrency Control', () => {
     );
 
     // Mock the PATCH request
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ...mockRecord, status: 'approved', version: 2 }),
-    });
+    } as Response);
 
     // Click save (status is already pending, we just want to verify version is sent)
     const saveButton = screen.getByRole('button', { name: /save/i });
@@ -76,14 +87,14 @@ describe('Optimistic Concurrency Control', () => {
     );
 
     // Mock 409 conflict response
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: false,
       status: 409,
       json: async () => ({
         error: 'Version conflict',
         serverRecord: { ...mockRecord, version: 2, status: 'approved' },
       }),
-    });
+    } as Response);
 
     // Click save (will trigger 409 error)
     const saveButton = screen.getByRole('button', { name: /save/i });
@@ -108,14 +119,14 @@ describe('Optimistic Concurrency Control', () => {
     );
 
     // Mock 409 conflict
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: false,
       status: 409,
       json: async () => ({
         error: 'Version conflict',
         serverRecord: { ...mockRecord, version: 2 },
       }),
-    });
+    } as Response);
 
     // Trigger save
     const saveButton = screen.getByRole('button', { name: /save/i });
@@ -141,14 +152,14 @@ describe('Optimistic Concurrency Control', () => {
     );
 
     // Mock 409 conflict
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: false,
       status: 409,
       json: async () => ({
         error: 'Version conflict',
         serverRecord: { ...mockRecord, version: 2 },
       }),
-    });
+    } as Response);
 
     // Trigger conflict
     await userEvent.click(screen.getByRole('button', { name: /save/i }));
@@ -158,10 +169,10 @@ describe('Optimistic Concurrency Control', () => {
     });
 
     // Mock refresh
-    (global.fetch as any).mockResolvedValueOnce({
+    vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => [{ ...mockRecord, version: 2 }],
-    });
+    } as Response);
 
     // Click refresh & try again
     const refreshButton = screen.getByText('Refresh & Try Again');

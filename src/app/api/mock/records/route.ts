@@ -149,11 +149,20 @@ export async function GET(request: NextRequest) {
   const endIndex = startIndex + limit;
   const paginatedRecords = records.slice(startIndex, endIndex);
 
+  // Calculate status counts from ALL records, not just current page
+  const statusCounts = {
+    pending: records.filter(r => r.status === 'pending').length,
+    approved: records.filter(r => r.status === 'approved').length,
+    flagged: records.filter(r => r.status === 'flagged').length,
+    needs_revision: records.filter(r => r.status === 'needs_revision').length,
+  };
+
   return NextResponse.json({
     records: paginatedRecords,
     totalCount,
     page,
     limit,
+    statusCounts,
   });
 }
 

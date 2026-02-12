@@ -28,8 +28,19 @@ function TestWrapper({ record, onClose }: { record: RecordItem, onClose: () => v
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Mock fetchRecords to prevent act() warnings from RecordsProvider useEffect
-  vi.mocked(recordsApi.fetchRecords).mockResolvedValue([mockRecord]);
+  // Mock fetchPaginatedRecords to prevent act() warnings from RecordsProvider useEffect
+  vi.mocked(recordsApi.fetchPaginatedRecords).mockResolvedValue({
+    records: [mockRecord],
+    totalCount: 1,
+    page: 1,
+    limit: 5,
+    statusCounts: {
+      pending: 1,
+      approved: 0,
+      flagged: 0,
+      needs_revision: 0,
+    },
+  });
   vi.mocked(recordsApi.updateRecord).mockResolvedValue({ ...mockRecord, status: 'approved', version: 2 });
 });
 

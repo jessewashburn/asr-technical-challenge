@@ -3,8 +3,8 @@
  * 
  * Tests the pagination functionality including:
  * - Page navigation
- * - Page limit enforcement
- * - Toggle pagination mode
+ * - Pagination controls display
+ * - Paginated API calls
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -36,90 +36,46 @@ const mockPaginatedResponse = {
   totalCount: 12,
   page: 1,
   limit: 5,
+  statusCounts: {
+    pending: 8,
+    approved: 3,
+    flagged: 1,
+    needs_revision: 0,
+  },
 };
 
-const mockAllRecords = Array.from({ length: 12 }, (_, i) => ({
-  id: String(i + 1),
-  name: `Test Record ${i + 1}`,
-  description: `Description ${i + 1}`,
-  status: i % 4 === 0 ? "approved" : "pending",
-  version: 1,
-}));
+const mockPage2Response = {
+  records: [
+    {
+      id: "6",
+      name: "Test Record 6",
+      description: "Description 6",
+      status: "pending",
+      version: 1,
+    },
+  ],
+  totalCount: 12,
+  page: 2,
+  limit: 5,
+  statusCounts: {
+    pending: 8,
+    approved: 3,
+    flagged: 1,
+    needs_revision: 0,
+  },
+};
 
 describe('Pagination', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: async () => mockAllRecords,
-    });
+      json: async () => mockPaginatedResponse,
+    } as Response);
   });
 
-  it('should show pagination toggle button', async () => {
-    render(
-      <RecordsProvider>
-        <RecordList />
-      </RecordsProvider>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Records')).toBeInTheDocument();
-    });
-
-    // Initially pagination is disabled
-    expect(screen.getByText('Enable Pagination')).toBeInTheDocument();
-    
-    // Enable pagination
-    const toggleButton = screen.getByText('Enable Pagination');
-    await userEvent.click(toggleButton);
-
-    // Should now show disable option
-    await waitFor(() => {
-      expect(screen.getByText('Disable Pagination')).toBeInTheDocument();
-    });
-  });
-
-  it('should show pagination controls when enabled', async () => {
-    // Mock paginated fetch
-    (global.fetch as any).mockResolvedValue({
-      ok: true,
-      json: async () => mockAllRecords,
-    });
-
-    render(
-      <RecordsProvider>
-        <RecordList />
-      </RecordsProvider>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('Records')).toBeInTheDocument();
-    });
-
-    // Enable pagination - just verify the toggle works
-    const toggleButton = screen.getByText('Enable Pagination');
-    await userEvent.click(toggleButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('Disable Pagination')).toBeInTheDocument();
-    });
-  });
-
-  it('should call paginated API when pagination is enabled', async () => {
+  it('should call paginated API on mount', async () => {
     const fetchSpy = vi.spyOn(global, 'fetch');
-    
-    (global.fetch as any).mockImplementation((url: string) => {
-      if (url.includes('?page=')) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => mockPaginatedResponse,
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => mockAllRecords,
-      });
-    });
 
     render(
       <RecordsProvider>
@@ -130,14 +86,64 @@ describe('Pagination', () => {
     await waitFor(() => {
       expect(screen.getByText('Records')).toBeInTheDocument();
     });
-
-    // Enable pagination
-    await userEvent.click(screen.getByText('Enable Pagination'));
 
     // Verify paginated API was called
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('?page=1&limit=5'));
-    }, { timeout: 3000 });
+    });
+    
+    fetchSpy.mockRestore();
+  });
+
+  it('should show pagination info in header', async () => {
+    render(
+      <RecordsProvider>
+        <RecordList />
+      </RecordsProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/12/)).toBeInTheDocument(); // total count
+      expect(screen.getByText(/Page 1 of/)).toBeInTheDocument();
+    });
+  });
+
+  it('should navigate to next page when Next button clicked', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+    
+    vi.mocked(global.fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes('page=2')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockPage2Response,
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => mockPaginatedResponse,
+      } as Response);
+    });
+
+    render(
+      <RecordsProvider>
+        <RecordList />
+      </RecordsProvider>
+    );
+
+    // Wait for data to load and Next button to appear
+    await waitFor(() => {
+      expect(screen.getByText('Next →')).toBeInTheDocument();
+    });
+
+    // Click next button
+    const nextButton = screen.getByText('Next →');
+    await userEvent.click(nextButton);
+
+    // Verify page 2 API was called
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('?page=2&limit=5'));
+    });
     
     fetchSpy.mockRestore();
   });
