@@ -51,7 +51,11 @@ This project used [roadmap.md](./roadmap.md) as a living specification document 
 5. **UI/UX Polish** - Status-specific colors, enhanced states, accessibility improvements, custom scrollbar
 
 **Optional Features (Both Completed):**
-1. **Server-Side Pagination** - `page`/`limit` query params, toggle UI, prev/next navigation
+1. **Server-Side Pagination with Filtering** - `page`/`limit`/`status` query params with scalable filtering
+   - Page size selector (5, 10, 20, 50 results per page)
+   - Server-side status filtering maintains pagination for large datasets
+   - Real-time updates: filtered records disappear instantly when status changes
+   - Status counts update immediately after any record modification
 2. **Optimistic Concurrency** - Version-based conflict detection with 409 handling and resolution UI
 
 **Testing:**
@@ -70,6 +74,8 @@ This project used [roadmap.md](./roadmap.md) as a living specification document 
 - Container/Presenter (separation of concerns)
 - Custom Hooks (derived state)
 - Provider Pattern (centralized state)
+- Server-Side Filtering (scalability)
+- Real-Time Data Sync (instant UI updates)
 
 **File Structure:**
 ```
