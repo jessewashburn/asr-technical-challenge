@@ -53,7 +53,7 @@ interface RecordsContextValue {
    */
   history: RecordHistoryEntry[];
   /**
-   * Clear the history log (in-memory only)
+   * Clears the history log.
    */
   clearHistory: () => void;
 }

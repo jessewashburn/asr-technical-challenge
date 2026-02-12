@@ -11,7 +11,7 @@ export interface RecordItem {
   status: RecordStatus;
   description: string;
   note?: string;
-  version: number; // Monotonically increasing version for optimistic concurrency
+  version: number;
 }
 
 /**
