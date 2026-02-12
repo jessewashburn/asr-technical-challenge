@@ -120,9 +120,6 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
       
       // Call API to update (includes version for concurrency check)
       const updatedRecord = await updateRecordApi(id, updates);
-      
-      // Update local state
-      setRecords((prev) => prev.map((r) => (r.id === updatedRecord.id ? updatedRecord : r)));
 
       // Add history entry if status changed
       if (previousRecord && updates.status && previousRecord.status !== updates.status) {
@@ -135,12 +132,15 @@ export function RecordsProvider({ children }: { children: React.ReactNode }) {
         };
         setHistory((prev) => [...prev, entry]);
       }
+      
+      // Refresh the current page to get updated filtered results and status counts
+      await loadRecords(currentPage);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
       throw err; // Re-throw so caller can handle version conflicts
     }
-  }, [records]);
+  }, [records, loadRecords, currentPage]);
 
   const refresh = useCallback(async () => {
     await loadRecords(currentPage);
